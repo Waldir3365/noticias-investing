@@ -3,3 +3,4 @@ beautifulsoup4
 lxml
 python-dateutil
 pytz
+curl_cffi
