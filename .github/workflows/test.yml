@@ -20,5 +20,8 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
       
+      - name: Instalar navegador de Playwright
+        run: playwright install chromium --with-deps
+      
       - name: Ejecutar script
         run: python investing_check.py
