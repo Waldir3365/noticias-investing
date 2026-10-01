@@ -1,4 +1,4 @@
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -26,7 +26,14 @@ def obtener_eventos_3_estrellas():
     }
     
     try:
-        response = requests.post(URL, headers=HEADERS, data=payload, timeout=30)
+        # La clave: impersonate="chrome120" imita el navegador a nivel TLS
+        response = requests.post(
+            URL, 
+            headers=HEADERS, 
+            data=payload, 
+            impersonate="chrome120",  # <-- ESTO ES LO NUEVO
+            timeout=30
+        )
         print(f"HTTP Code: {response.status_code}")
         print(f"Tamaño respuesta: {len(response.text)} bytes")
         
