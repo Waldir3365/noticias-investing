@@ -1,11 +1,24 @@
-name: Prueba GitHub Actions
+name: Noticias Investing
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
+
 jobs:
-  test:
+  consultar:
     runs-on: ubuntu-latest
     steps:
-      - name: Mostrar mensaje
-        run: echo "GitHub Actions funciona correctamente"
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      
+      - name: Ejecutar script
+        run: python calendar.py
