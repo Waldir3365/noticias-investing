@@ -1,37 +1,34 @@
 from curl_cffi import requests
-from bs4 import BeautifulSoup
 from datetime import datetime
 
-URL = "https://www.investing.com/economic-calendar/Service/getCalendarFilteredData"
+# Endpoint nuevo que descubriste en DevTools
+BASE_URL = "https://endpoints.investing.com/pd-instruments/v1/calendars/economic/events/occurrences"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "X-Requested-With": "XMLHttpRequest",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Referer": "https://www.investing.com/economic-calendar/",
-    "Content-Type": "application/x-www-form-urlencoded",
+    "Origin": "https://www.investing.com",
 }
 
 def obtener_eventos_3_estrellas():
     hoy = datetime.now().strftime("%Y-%m-%d")
     
-    payload = {
-        "country[]": "5",
-        "importance[]": "3",
-        "dateFrom": hoy,
-        "dateTo": hoy,
-        "timeZone": "8",
-        "timeFilter": "timeRemain",
-        "currentTab": "custom",
-        "limit_from": "0",
+    # Parámetros basados en tu URL descubierta
+    params = {
+        "domain_id": "1",
+        "limit": "200",
+        "start_date": f"{hoy}T00:00:00.000-04:00",
+        "end_date": f"{hoy}T23:59:59.999-04:00",
+        "country_ids": "5",
+        "importance": "high",
     }
     
     try:
-        # La clave: impersonate="chrome120" imita el navegador a nivel TLS
-        response = requests.post(
-            URL, 
-            headers=HEADERS, 
-            data=payload, 
-            impersonate="chrome120",  # <-- ESTO ES LO NUEVO
+        response = requests.get(
+            BASE_URL,
+            params=params,
+            headers=HEADERS,
+            impersonate="chrome124", # Versión más reciente
             timeout=30
         )
         print(f"HTTP Code: {response.status_code}")
@@ -41,26 +38,28 @@ def obtener_eventos_3_estrellas():
             print(f"Error: {response.text[:500]}")
             return []
         
-        soup = BeautifulSoup(response.text, "lxml")
+        # Parsear JSON
+        data = response.json()
+        events = data.get("events", [])
+        occurrences = data.get("occurrences", [])
         
-        eventos = []
-        for fila in soup.select("tr.js-event-item"):
-            try:
-                hora = fila.select_one(".first.left.time")
-                nombre = fila.select_one(".left.event")
-                pais = fila.select_one(".left.flagCur")
-                estrellas = fila.select(".grayFullBullishIcon")
-                
-                if nombre and len(estrellas) == 3:
-                    eventos.append({
-                        "hora": hora.get_text(strip=True) if hora else "",
-                        "pais": pais.get_text(strip=True) if pais else "",
-                        "evento": nombre.get_text(strip=True),
+        # Crear un diccionario de eventos por ID para cruzar
+        event_map = {e["event_id"]: e for e in events}
+        
+        eventos_finales = []
+        for occ in occurrences:
+            ev_id = occ["event_id"]
+            if ev_id in event_map:
+                ev = event_map[ev_id]
+                # Solo eventos de alta importancia
+                if ev.get("importance") == "high":
+                    eventos_finales.append({
+                        "hora": occ.get("occurrence_time", ""),
+                        "pais": ev.get("currency", ""),
+                        "evento": ev.get("short_name", "Sin nombre"),
                     })
-            except Exception:
-                continue
         
-        return eventos
+        return eventos_finales
         
     except Exception as e:
         print(f"ERROR: {e}")
