@@ -1,5 +1,6 @@
 from scrapling.fetchers import StealthyFetcher
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import json
 
 # Endpoint nuevo descubierto en DevTools
@@ -7,10 +8,8 @@ BASE_URL = "https://endpoints.investing.com/pd-instruments/v1/calendars/economic
 
 
 def obtener_eventos_3_estrellas():
-    from zoneinfo import ZoneInfo
     hoy = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
-    # URL con parámetros (igual que en DevTools)
     url = (
         f"{BASE_URL}"
         f"?domain_id=1"
@@ -30,10 +29,7 @@ def obtener_eventos_3_estrellas():
         )
 
         print(f"HTTP Code: {response.status}")
-        print(f"Tamaño response.text: {len(response.text) if response.text else 0} bytes")
-        print(f"Tamaño response.body: {len(response.body) if response.body else 0} bytes")
 
-        # Intentar obtener el contenido de distintas formas
         contenido = ""
         if response.text:
             contenido = response.text
@@ -44,12 +40,8 @@ def obtener_eventos_3_estrellas():
                 contenido = str(response.body)
 
         if not contenido:
-            print("El contenido está vacío. Headers de la respuesta:")
-            print(response.headers)
+            print("El contenido está vacío.")
             return []
-
-        print("Primeros 300 caracteres del contenido:")
-        print(contenido[:300])
 
         data = json.loads(contenido)
         events = data.get("events", [])
@@ -63,8 +55,17 @@ def obtener_eventos_3_estrellas():
             if ev_id in event_map:
                 ev = event_map[ev_id]
                 if ev.get("importance") == "high":
+                    hora_str = occ.get("occurrence_time", "")
+                    hora_ny = ""
+                    if hora_str:
+                        try:
+                            hora_utc = datetime.fromisoformat(hora_str.replace("Z", "+00:00"))
+                            hora_ny = hora_utc.astimezone(ZoneInfo("America/New_York")).strftime("%H:%M")
+                        except Exception:
+                            hora_ny = hora_str
+
                     eventos_finales.append({
-                        "hora": occ.get("occurrence_time", ""),
+                        "hora": hora_ny,
                         "pais": ev.get("currency", ""),
                         "evento": ev.get("short_name", "Sin nombre"),
                     })
