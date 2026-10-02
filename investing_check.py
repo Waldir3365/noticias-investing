@@ -7,7 +7,8 @@ BASE_URL = "https://endpoints.investing.com/pd-instruments/v1/calendars/economic
 
 
 def obtener_eventos_3_estrellas():
-    hoy = datetime.now().strftime("%Y-%m-%d")
+    from zoneinfo import ZoneInfo
+    hoy = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
 
     # URL con parámetros (igual que en DevTools)
     url = (
